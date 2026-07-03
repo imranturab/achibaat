@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> My Smart Work  - Edit/Delete</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #f0ebe7;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 750px;
+            width: 100%;
+            background: white;
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2d2d2d; font-size: 28px; }
+        .subtitle {
+            color: #777;
+            font-size: 14px;
+            border-bottom: 2px dashed #ddd;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .auth-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+        }
+        .user-name {
+            font-weight: 600;
+            color: #2d2d2d;
+            font-size: 14px;
+        }
+        .input-area {
+            background: #faf7f5;
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid #ece3dd;
+        }
+        textarea {
+            width: 100%;
+            min-height: 80px;
+            border: 2px solid #e0d6d0;
+            border-radius: 16px;
+            padding: 15px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+            background: white;
+        }
+        textarea:focus { border-color: #8b7a6e; }
+        .btn-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .counter {
+            color: #999;
+            font-size: 14px;
+            background: #f5f0ec;
+            padding: 5px 15px;
+            border-radius: 30px;
+        }
+        .btn {
+            background: #2d2d2d;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover { background: #4a3f3a; transform: scale(1.02); }
+        .btn-google {
+            background: #4285f4;
+        }
+        .btn-google:hover { background: #357ae8; }
+        .btn-logout {
+            background: #e74c3c;
+            padding: 6px 16px;
+            font-size: 13px;
+        }
+        .btn-logout:hover { background: #c0392b; }
+        .btn-voice {
+            background: #6c5ce7;
+        }
+        .btn-voice:hover { background: #5a4bd1; }
+        .btn-voice.recording {
+            background: #e74c3c;
+            animation: pulse 1s infinite;
+        }
+        .btn-save-edit {
+            background: #2ecc71;
+        }
+        .btn-save-edit:hover { background: #27ae60; }
+        .btn-cancel-edit {
+            background: #95a5a6;
+        }
+        .btn-cancel-edit:hover { background: #7f8c8d; }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .messages-box {
+            margin-top: 25px;
+            background: #faf7f5;
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid #ece3dd;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+        .msg-header {
+            display: flex;
+            justify-content: space-between;
+            color: #6b5f59;
+            font-size: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5dbd5;
+            margin-bottom: 15px;
+        }
+        .msg-item {
+            background: white;
+            padding: 14px 18px;
+            border-radius: 18px;
+            margin-bottom: 10px;
+            border: 1px solid #ede4de;
+            position: relative;
+        }
+        .msg-item.voice-msg {
+            border-left: 4px solid #6c5ce7;
+        }
+        .msg-item.my-msg {
+            border: 2px solid #3498db;
+            background: #f0f8ff;
+        }
+        .msg-sender {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .msg-sender img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+        .msg-sender .badge {
+            display: inline-block;
+            background: #e8e0da;
+            padding: 0px 10px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 400;
+            color: #6b5f59;
+        }
+        .msg-text {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #1a1a1a;
+        }
+        .msg-text.editing {
+            display: none;
+        }
+        .msg-edit-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #3498db;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+            display: none;
+            margin-top: 4px;
+        }
+        .msg-edit-input.active {
+            display: block;
+        }
+        .msg-edit-actions {
+            display: none;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .msg-edit-actions.active {
+            display: flex;
+        }
+        .msg-edit-actions .btn {
+            padding: 6px 18px;
+            font-size: 13px;
+        }
+        .msg-time {
+            color: #b0a39b;
+            font-size: 11px;
+            text-align: right;
+            margin-top: 6px;
+            border-top: 1px dashed #e5dbd5;
+            padding-top: 6px;
+        }
+        .msg-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .msg-actions .btn-action {
+            background: transparent;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .msg-actions .btn-edit {
+            color: #3498db;
+            background: #ebf5fb;
+        }
+        .msg-actions .btn-edit:hover { background: #d6eaf8; }
+        .msg-actions .btn-delete {
+            color: #e74c3c;
+            background: #fdedec;
+        }
+        .msg-actions .btn-delete:hover { background: #fadbd8; }
+        .msg-actions .btn-action:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .voice-badge {
+            display: inline-block;
+            background: #6c5ce7;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 30px;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+        .empty-msg {
+            text-align: center;
+            color: #bfb2aa;
+            padding: 30px 0;
+            font-style: italic;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .status-online { background: #d4edda; color: #155724; }
+        .status-offline { background: #f8d7da; color: #721c24; }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #b0a39b;
+            font-size: 13px;
+            border-top: 1px solid #ede4de;
+            padding-top: 18px;
+        }
+        .voice-status {
+            text-align: center;
+            color: #6c5ce7;
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+        .error-box {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 14px;
+        }
+        .edited-badge {
+            color: #95a5a6;
+            font-size: 11px;
+            font-style: italic;
+        }
+        @media (max-width: 480px) {
+            .container { padding: 15px; }
+            .btn { padding: 10px 18px; font-size: 13px; }
+            .subtitle { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .msg-actions .btn-action { padding: 2px 8px; font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💬   Responsive Website  HTML • CSS • JavaScript  Bug Fix Expert  </h1>
+        <div class="subtitle">
+            <span>👤 Google شناخت &nbsp;|&nbsp; ✏️ ترمیم &nbsp;|&nbsp; 🗑️ حذف</span>
+            <div class="auth-section">
+                <div class="user-info" id="userInfo" style="display:none;">
+                    <img class="user-avatar" id="userAvatar" src="" alt="Avatar">
+                    <span class="user-name" id="userNameDisplay">-</span>
+                    <button class="btn btn-logout" id="logoutBtn">🚪 لاگ آؤٹ</button>
+                </div>
+                <button class="btn btn-google" id="loginBtn">🔑 Google سے لاگ ان</button>
+                <span id="statusBadge" class="status-badge status-offline">⏳ رابطہ...</span>
+            </div>
+        </div>
+
+        <div id="errorBox" class="error-box"></div>
+
+        <div class="input-area">
+            <textarea id="msgInput" placeholder="اپنا پیغام لکھیں... یا مائیکروفون استعمال کریں" maxlength="500" disabled></textarea>
+            <div class="btn-row">
+                <div class="btn-group">
+                    <button class="btn" id="sendBtn" disabled>📤 بھیجیں</button>
+                    <button class="btn btn-voice" id="voiceBtn" disabled>🎤 آواز</button>
+                </div>
+                <span class="counter" id="charCount">0 / 500</span>
+            </div>
+            <div class="voice-status" id="voiceStatus">🔒 پیغام بھیجنے کے لیے Google سے لاگ ان کریں</div>
+        </div>
+
+        <div class="messages-box">
+            <div class="msg-header">
+                <span>🕊️ تمام پیغامات</span>
+                <span id="msgCount">0 پیغامات</span>
+            </div>
+            <div id="msgContainer">
+                <div class="empty-msg">⏳ لوڈ ہو رہا ہے...</div>
+            </div>
+        </div>
+        <div class="footer">⚡ Firebase میں محفوظ · صرف اپنے پیغامات میں ترمیم/حذف کریں</div>
+    </div>
+
+    <script>
+        // 🔑 آپ کی Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBAjfE3o4aDMrgnM0iayj1jJJZbdMtf0xQ",
+            authDomain: "anonymous-messages-cc20c.firebaseapp.com",
+            databaseURL: "https://anonymous-messages-cc20c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "anonymous-messages-cc20c",
+            storageBucket: "anonymous-messages-cc20c.firebasestorage.app",
+            messagingSenderId: "928908635792",
+            appId: "1:928908635792:web:45a7de979c729d0e487215",
+            measurementId: "G-JWQ1VTFYJD"
+        };
+
+        // Firebase Initialize
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+        const msgsRef = db.ref('messages');
+
+        // DOM Elements
+        const msgInput = document.getElementById('msgInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const voiceBtn = document.getElementById('voiceBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userInfo = document.getElementById('userInfo');
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const userAvatar = document.getElementById('userAvatar');
+        const msgContainer = document.getElementById('msgContainer');
+        const charCount = document.getElementById('charCount');
+        const msgCount = document.getElementById('msgCount');
+        const statusBadge = document.getElementById('statusBadge');
+        const errorBox = document.getElementById('errorBox');
+        const voiceStatus = document.getElementById('voiceStatus');
+
+        let currentUser = null;
+        let editingMsgId = null;
+        let allMessages = {};
+
+        // ===== Authentication =====
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                userInfo.style.display = 'flex';
+                loginBtn.style.display = 'none';
+                userNameDisplay.textContent = user.displayName || user.email;
+                userAvatar.src = user.photoURL || 'https://ui-avatars.com/api/?name=' + (user.displayName || 'User');
+                msgInput.disabled = false;
+                sendBtn.disabled = false;
+                voiceBtn.disabled = false;
+                msgInput.placeholder = 'اپنا پیغام لکھیں... یا مائیکروفون استعمال کریں';
+                voiceStatus.textContent = '🎤 مائیکروفون بٹن دبائیں اور بولنا شروع کریں';
+            } else {
+                currentUser = null;
+                userInfo.style.display = 'none';
+                loginBtn.style.display = 'block';
+                msgInput.disabled = true;
+                sendBtn.disabled = true;
+                voiceBtn.disabled = true;
+                msgInput.placeholder = '🔒 پیغام بھیجنے کے لیے لاگ ان کریں';
+                voiceStatus.textContent = '🔒 پیغام بھیجنے کے لیے Google سے لاگ ان کریں';
+                editingMsgId = null;
+            }
+        });
+
+        // ===== Google Login =====
+        loginBtn.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            auth.signInWithPopup(provider).catch((error) => {
+                alert('لاگ ان میں مسئلہ: ' + error.message);
+            });
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // ===== Voice Recognition =====
+        let recognition = null;
+        let isRecording = false;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ur-PK';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = function() {
+                isRecording = true;
+                voiceBtn.classList.add('recording');
+                voiceBtn.innerHTML = '⏹️ ریکارڈنگ...';
+                voiceStatus.textContent = '🎤 بول رہے ہیں...';
+            };
+
+            recognition.onresult = function(event) {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    msgInput.value = finalTranscript;
+                    updateCounter();
+                    voiceStatus.textContent = '✅ آواز تحریر میں بدل گئی: "' + finalTranscript + '"';
+                    setTimeout(() => {
+                        if (msgInput.value.trim() && currentUser) {
+                            sendMessage();
+                        }
+                    }, 500);
+                } else if (interimTranscript) {
+                    msgInput.value = interimTranscript;
+                    updateCounter();
+                    voiceStatus.textContent = '⏳ سن رہا ہوں: "' + interimTranscript + '"';
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech error:', event.error);
+                if (event.error === 'not-allowed') {
+                    voiceStatus.textContent = '❌ مائیکروفون کی اجازت نہیں دی گئی';
+                } else if (event.error === 'no-speech') {
+                    voiceStatus.textContent = '🔇 کوئی آواز نہیں سنی۔ دوبارہ کوشش کریں';
+                } else {
+                    voiceStatus.textContent = '❌ خرابی: ' + event.error;
+                }
+                stopRecording();
+            };
+
+            recognition.onend = function() {
+                stopRecording();
+                if (!msgInput.value.trim()) {
+                    voiceStatus.textContent = '🎤 دوبارہ بٹن دبائیں اور بولنا شروع کریں';
+                }
+            };
+
+        } else {
+            voiceBtn.style.display = 'none';
+            voiceStatus.textContent = '⚠️ آپ کا براؤزر وائس سپورٹ نہیں کرتا (Chrome استعمال کریں)';
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            voiceBtn.classList.remove('recording');
+            voiceBtn.innerHTML = '🎤 آواز';
+        }
+
+        voiceBtn.addEventListener('click', function() {
+            if (!currentUser) {
+                alert('🔒 برائے مہربانی پہلے Google سے لاگ ان کریں');
+                return;
+            }
+            if (!recognition) {
+                alert('آپ کا براؤزر وائس سپورٹ نہیں کرتا۔ Chrome استعمال کریں');
+                return;
+            }
+            if (isRecording) {
+                recognition.stop();
+                return;
+            }
+            try {
+                recognition.start();
+            } catch (e) {
+                voiceStatus.textContent = '❌ مائیکروفون شروع نہیں ہو سکا';
+            }
+        });
+
+        // ===== Edit Functions =====
+        function startEdit(msgId, currentText) {
+            // Close any other edit
+            if (editingMsgId) {
+                cancelEdit(editingMsgId);
+            }
+            editingMsgId = msgId;
+            
+            const msgElement = document.querySelector(`[data-msg-id="${msgId}"]`);
+            if (!msgElement) return;
+            
+            const textDiv = msgElement.querySelector('.msg-text');
+            const editInput = msgElement.querySelector('.msg-edit-input');
+            const editActions = msgElement.querySelector('.msg-edit-actions');
+            
+            textDiv.style.display = 'none';
+            editInput.value = currentText;
+            editInput.style.display = 'block';
+            editActions.classList.add('active');
+            editInput.focus();
+            editInput.select();
+        }
+
+        function cancelEdit(msgId) {
+            if (editingMsgId !== msgId) return;
+            editingMsgId = null;
+            
+            const msgElement = document.querySelector(`[data-msg-id="${msgId}"]`);
+            if (!msgElement) return;
+            
+            const textDiv = msgElement.querySelector('.msg-text');
+            const editInput = msgElement.querySelector('.msg-edit-input');
+            const editActions = msgElement.querySelector('.msg-edit-actions');
+            
+            textDiv.style.display = 'block';
+            editInput.style.display = 'none';
+            editActions.classList.remove('active');
+        }
+
+        function saveEdit(msgId) {
+            const msgElement = document.querySelector(`[data-msg-id="${msgId}"]`);
+            if (!msgElement) return;
+            
+            const editInput = msgElement.querySelector('.msg-edit-input');
+            const newText = editInput.value.trim();
+            
+            if (!newText) {
+                alert('⚠️ پیغام خالی نہیں ہو سکتا');
+                return;
+            }
+            
+            // Update in Firebase
+            msgsRef.child(msgId).update({
+                text: newText,
+                edited: true,
+                editedAt: Date.now()
+            }).then(() => {
+                cancelEdit(msgId);
+            }).catch((err) => {
+                alert('❌ ترمیم میں مسئلہ: ' + err.message);
+            });
+        }
+
+        function deleteMessage(msgId) {
+            if (!confirm('کیا آپ واقعی یہ پیغام حذف کرنا چاہتے ہیں؟')) return;
+            
+            msgsRef.child(msgId).remove()
+                .then(() => {
+                    console.log('✅ پیغام حذف ہو گیا');
+                })
+                .catch((err) => {
+                    alert('❌ حذف کرنے میں مسئلہ: ' + err.message);
+                });
+        }
+
+        // ===== Messages Show =====
+        function showMessages(messagesData) {
+            allMessages = messagesData || {};
+            msgContainer.innerHTML = '';
+            
+            const keys = Object.keys(allMessages);
+            if (keys.length === 0) {
+                msgContainer.innerHTML = '<div class="empty-msg">✨ کوئی پیغام نہیں۔ پہلا پیغام لکھیں!</div>';
+                msgCount.textContent = '0 پیغامات';
+                return;
+            }
+
+            // Sort by time (newest first)
+            const sortedKeys = keys.sort((a, b) => {
+                return (allMessages[b].time || 0) - (allMessages[a].time || 0);
+            });
+
+            for (let key of sortedKeys) {
+                const msg = allMessages[key];
+                const div = document.createElement('div');
+                div.className = 'msg-item';
+                div.setAttribute('data-msg-id', key);
+                
+                if (msg.isVoice) {
+                    div.classList.add('voice-msg');
+                }
+                
+                // Check if this is current user's message
+                const isMyMsg = currentUser && msg.uid === currentUser.uid;
+                if (isMyMsg) {
+                    div.classList.add('my-msg');
+                }
+                
+                const timeStr = msg.time ? new Date(msg.time).toLocaleString('ur-PK') : 'ابھی';
+                const senderName = msg.sender || 'گمنام';
+                const senderPhoto = msg.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(senderName);
+                const nameColor = getColorFromName(senderName);
+                const voiceBadge = msg.isVoice ? '<span class="voice-badge">🎤 وائس</span>' : '';
+                const editedBadge = msg.edited ? ' <span class="edited-badge">(ترمیم شدہ)</span>' : '';
+                
+                div.innerHTML = `
+                    <div class="msg-sender" style="color: ${nameColor}">
+                        <img src="${senderPhoto}" alt="${senderName}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}'">
+                        ${senderName} ${editedBadge}
+                        <span class="badge">${msg.isVoice ? '🎤' : '✍️'}</span>
+                    </div>
+                    <div class="msg-text">${voiceBadge} ${msg.text}</div>
+                    <textarea class="msg-edit-input" maxlength="500"></textarea>
+                    <div class="msg-edit-actions">
+                        <button class="btn btn-save-edit" onclick="saveEdit('${key}')">💾 محفوظ کریں</button>
+                        <button class="btn btn-cancel-edit" onclick="cancelEdit('${key}')">❌ منسوخ کریں</button>
+                    </div>
+                    <div class="msg-time">⏱️ ${timeStr}</div>
+                    ${isMyMsg ? `
+                        <div class="msg-actions">
+                            <button class="btn-action btn-edit" onclick="startEdit('${key}', '${msg.text.replace(/'/g, "\\'")}')">
+                                ✏️ ترمیم
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteMessage('${key}')">
+                                🗑️ حذف کریں
+                            </button>
+                        </div>
+                    ` : ''}
+                `;
+                msgContainer.appendChild(div);
+            }
+            msgCount.textContent = `${keys.length} پیغامات`;
+        }
+
+        function getColorFromName(name) {
+            const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#2c3e50'];
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return colors[Math.abs(hash) % colors.length];
+        }
+
+        // ===== Firebase Real-time Listener =====
+        msgsRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                showMessages(data);
+            } else {
+                showMessages({});
+            }
+            statusBadge.textContent = '✅ آن لائن';
+            statusBadge.className = 'status-badge status-online';
+            errorBox.style.display = 'none';
+            
+            // If editing message was deleted, cancel edit
+            if (editingMsgId && !data[editingMsgId]) {
+                editingMsgId = null;
+            }
+        }, (error) => {
+            console.error('Firebase error:', error);
+            statusBadge.textContent = '⚠️ آف لائن';
+            statusBadge.className = 'status-badge status-offline';
+            errorBox.textContent = '⚠️ ڈیٹا لوڈ نہیں ہو سکا: ' + error.message;
+            errorBox.style.display = 'block';
+        });
+
+        // ===== Send Message =====
+        function sendMessage() {
+            if (!currentUser) {
+                alert('🔒 برائے مہربانی پہلے Google سے لاگ ان کریں');
+                return;
+            }
+
+            const text = msgInput.value.trim();
+            if (!text) {
+                msgInput.placeholder = '⚠️ کچھ لکھیں یا بولیں!';
+                msgInput.style.borderColor = '#c0392b';
+                setTimeout(() => {
+                    msgInput.placeholder = 'اپنا پیغام لکھیں... یا مائیکروفون استعمال کریں';
+                    msgInput.style.borderColor = '#e0d6d0';
+                }, 1500);
+                return;
+            }
+
+            const newMsg = {
+                sender: currentUser.displayName || 'گمنام',
+                email: currentUser.email,
+                photoURL: currentUser.photoURL || '',
+                text: text,
+                time: Date.now(),
+                isVoice: false,
+                uid: currentUser.uid,
+                edited: false
+            };
+
+            msgsRef.push(newMsg)
+                .then(() => {
+                    msgInput.value = '';
+                    updateCounter();
+                    msgInput.focus();
+                    voiceStatus.textContent = '✅ پیغام بھیج دیا گیا!';
+                })
+                .catch((err) => {
+                    alert('❌ پیغام بھیجنے میں مسئلہ: ' + err.message);
+                });
+        }
+
+        // ===== Character Counter =====
+        function updateCounter() {
+            const len = msgInput.value.length;
+            charCount.textContent = `${len} / 500`;
+        }
+
+        // ===== Events =====
+        sendBtn.addEventListener('click', sendMessage);
+        msgInput.addEventListener('input', updateCounter);
+        msgInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Make functions globally accessible for inline onclick
+        window.startEdit = startEdit;
+        window.cancelEdit = cancelEdit;
+        window.saveEdit = saveEdit;
+        window.deleteMessage = deleteMessage;
+
+        updateCounter();
+    </script>
+</body>
+</html>
